@@ -43,9 +43,17 @@ def UpdateMacros(food, weight):
     # Update the day's macros in the database.
     # If this is the first insertion of the day, insert a new row.
     # Otherwise, update the existing row's values.
+    if food not in macros.data:
+        # No such food
+        print("Error. Food item not found: {}".format(food))
+        return
+    if weight < 0:
+        print("Error. Sub-zero weight provided.")
+        return
+    # Checks pass
     macroValues = macros.CalculateMacros(food, weight)
     if not macroValues:
-        # Error
+        # Something still went wrong?
         return
     today = GetTodayString() # D/M/Y - 10/8/2019 for 10 August 2019
     conn = sqlite3.connect(DATABASE)
@@ -57,7 +65,6 @@ def UpdateMacros(food, weight):
     row = cursor.fetchone()
     
     # Now let's start preparing our INSERT or UPDATE statement
-    sqlStatement = ""
     if not row:
         # Nothing from today was found.
         # This means it's the first insertion attempt for today,
@@ -68,7 +75,6 @@ def UpdateMacros(food, weight):
         questionMarks = ", ".join(["?" for x in range(len(macroValues._fields))])
         sqlStatement = "INSERT INTO Macros ({}, Date) VALUES ({}, ?)".format(", ".join(macroValues._fields), questionMarks)
         cursor.execute(sqlStatement, (*macroValues, today))
-        conn.commit()
     else:
         # A previous insertion has already occurred today.
         # This time we update the values by adding the new values to the old ones.
@@ -79,8 +85,12 @@ def UpdateMacros(food, weight):
         questionMarks = ", ".join(["{}=?".format(key) for key in row.keys()])
         sqlStatement = "UPDATE Macros SET {} WHERE Date=?".format(questionMarks)
         cursor.execute(sqlStatement, (*updatedValues, today))
-        conn.commit()
-    # Done. Close the database connection.
+    # Now insert the food and weight into the foods table
+    # This one is always INSERT INTO
+    sqlStatement = "INSERT INTO Foods (Name, Weight, Date) VALUES (?, ?, ?)"
+    cursor.execute(sqlStatement, (food, weight, today,))
+    # Commit the changes and close the connection
+    conn.commit()
     conn.close()
 
 # SQLite update statement:

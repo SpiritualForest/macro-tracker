@@ -49,7 +49,7 @@ def CalculateMacros(food, weight):
         return
     if weight < 0:
         # Negative weight? LOLWUT, no.
-        print("Error. Sub-zero weight provided for {}.".format(food))
+        print("Error. Sub-zero weight provided.")
         return
     
     macroValues = data[food]._asdict()
