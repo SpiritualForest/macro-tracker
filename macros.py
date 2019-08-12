@@ -34,10 +34,24 @@ data = {
         # NOTE: macros for dry, not cooked.
         "Brown beans": Macros(Calories=320, Fat=1.5, Carbs=45, Fiber=16, Protein=22, Water=0, Sodium=100),
         "Red lentils": Macros(Calories=350, Fat=1.3, Carbs=50, Fiber=12, Protein=24, Water=0, Sodium=100),
+        "Chickpeas": Macros(Calories=350, Fat=4.8, Carbs=50, Fiber=10, Protein=21, Water=0, Sodium=70),
+        "Whole wheat flour": Macros(Calories=330, Fat=3, Carbs=56, Fiber=13, Protein=14, Water=0, Sodium=5),
+        "Belbake rye flour": Macros(Calories=318, Fat=1.7, Carbs=59.7, Fiber=14, Protein=9, Water=0, Sodium=10),
         # Processed
-        "MP Barley groats": Macros(Calories=340, Fat=2, Carbs=66, Fiber=11, Protein=8, Water=0, Sodium=5),
-        "MP Rye flakes": Macros(Calories=332, Fat=2, Carbs=60, Fiber=17, Protein=10, Water=0, Sodium=2),
+        "Barley groats": Macros(Calories=340, Fat=2, Carbs=66, Fiber=11, Protein=8, Water=0, Sodium=5),
+        "Rye flakes": Macros(Calories=332, Fat=2, Carbs=60, Fiber=17, Protein=10, Water=0, Sodium=2),
+        "K-Menu canned white mushrooms": Macros(Calories=18, Fat=0.2, Carbs=0.9, Fiber=2.2, Protein=2.1, Water=170, Sodium=600),
+        "Marmite": Macros(Calories=260, Fat=0.5, Carbs=30, Fiber=1.1, Protein=34, Water=0, Sodium=10800),
     }
+
+# Food IDs dictionary, populated
+# based on the keys in the food data dictionary.
+# This dictionary is simply used to make the command line usage easier
+# by allowing users to use the food's ID rather than its name, 
+# if the name is long and cumbersome to type
+foodIds = {}
+for i, key in enumerate(data):
+    foodIds[i] = key
 
 def CalculateMacros(food, weight):
     # Calculate the macros and return a namedtuple with the results

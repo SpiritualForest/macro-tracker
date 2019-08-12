@@ -8,9 +8,9 @@ import macros
 import os
 
 # Paths and filenames
+# TODO: this should be configurable, not hard coded.
 LOCALPATH = os.path.dirname(os.path.realpath(__file__)) + "/"
 DATABASE = LOCALPATH + "dietlog.db"
-TABLES = LOCALPATH + "make_tables.sql"
 
 def GetTodayString():
     # Return a string of today's date
@@ -20,19 +20,31 @@ def GetTodayString():
 
 def MakeDatabase():
     # Create the database
-    instructions = ""
-    try:
-        with open(TABLES) as fd:
-            instructions = fd.read().strip()
-    except (FileNotFoundError, PermissionError, IOError) as exception:
-        print("Database creation failed.")
-        print("Could not read SQL instructions file: {}".format(exception))
-        return
-    # Got the instructions, we can proceed
+    macroColumns = ", ".join(["{} real".format(macro) for macro in macros.Macros._fields])
+    foodLogColumns = "Name text, Weight real, Date text"
     try:
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
-        cursor.executescript(instructions)
+        # First, create the Macros table
+        cursor.execute("CREATE TABLE Macros ( \
+            ID integer primary key autoincrement, \
+            {}, \
+            Date text \
+            );".format(macroColumns))
+        # Settings table
+        cursor.execute("CREATE TABLE Settings ( \
+            ID integer primary key autoincrement, \
+            {}, \
+            Date text \
+            );".format(macroColumns))
+        macroNames = ", ".join([macro for macro in macros.Macros._fields])
+        zeroes = ", ".join(["0" for x in macros.Macros._fields])
+        # FIXME: all insertions should use question mark parameterization
+        cursor.execute("INSERT INTO Settings ({}) VALUES ({})".format(macroNames, zeroes))
+        # Food weight log table
+        cursor.execute("CREATE TABLE Foods ( \
+            ID integer primary key autoincrement, \
+            {});".format(foodLogColumns))
         conn.commit()
         conn.close()
         print("Database created successfully: {}".format(DATABASE))
@@ -72,14 +84,12 @@ def UpdateMacros(food, weight):
         # Now we generate the parameter-holding question marks,
         # depending on how many macro values we have.
         # Results in a string of "?, ?, ?, [...]" of however many values exist.
-        questionMarks = ", ".join(["?" for x in range(len(macroValues._fields))])
+        questionMarks = ", ".join(["?" for x in macroValues._fields])
         sqlStatement = "INSERT INTO Macros ({}, Date) VALUES ({}, ?)".format(", ".join(macroValues._fields), questionMarks)
         cursor.execute(sqlStatement, (*macroValues, today))
     else:
         # A previous insertion has already occurred today.
         # This time we update the values by adding the new values to the old ones.
-        # Get a list of (key, value, key, value, key, value) of updated values
-        # and their respective key names.
         updatedValues = [getattr(macroValues, key) + row[key] for key in row.keys()]
         # This time we need question marks that are like "?=?, ?=?, ?=?" for our parameters.
         questionMarks = ", ".join(["{}=?".format(key) for key in row.keys()])
@@ -93,10 +103,20 @@ def UpdateMacros(food, weight):
     conn.commit()
     conn.close()
 
+def ExportDatabase():
+    # Export the database into HTML, SQL, whatever.
+    pass
+
+def MergeDatabase():
+    # Merge the data from an existing database into a new one.
+    # This is useful in case we added more macros after creating
+    # a database, but don't want to lose the previous logs.
+    pass
+
 # SQLite update statement:
 # UPDATE table 
 # SETcolumn1 = value1, column2 = value2
 # WHERE condition
 
 if __name__ == "__main__":
-    UpdateMacros("Potato", 750)
+    UpdateMacros("Potato", 500)
