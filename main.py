@@ -1,6 +1,6 @@
 # Macro tracker main file
 import sys
-import database
+from macrotracker import database
 
 # Each input mode has its own function that handles its subsequent commands
 

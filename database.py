@@ -46,11 +46,14 @@ def MakeDatabase():
         cursor.execute("""CREATE TABLE Foods (
             ID integer primary key autoincrement,
             {});""".format(foodLogColumns))
+        # Save change and close the connection
         conn.commit()
         conn.close()
-        print("Database created successfully: {}".format(DATABASE))
+        return True # success
+
     except sqlite3.OperationalError as exception:
         print("Database creation failed: {}".format(exception))
+        return False # failure
 
 def UpdateMacros(food, weight):
     # Update the day's macros in the database.
@@ -103,7 +106,52 @@ def UpdateMacros(food, weight):
     # Commit the changes and close the connection
     conn.commit()
     conn.close()
-    print("Updated database macros: {}g of {}.".format(weight, food))
+    # return True to indicate success
+    return True
+
+def UpdateUserSettings(macroValues):
+    # Update the user's macro target settings
+    # input: a Macros namedtuple
+    # First, let's build the query
+    if macroValues._fields != macros.Macros._fields:
+        # Incorrect data?
+        print("Incorrect data supplied to UpdateUserSettings()")
+        return
+
+    questionMarks = ", ".join(["{}=?".format(field) for field in macros.Macros._fields])
+    # No WHERE because there's only one row at all times in this table, which is initialized to 0.
+    sqlStatement = "UPDATE Settings SET {}".format(questionMarks)
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    cursor.execute(sqlStatement, macroValues)
+    conn.commit()
+    conn.close()
+    # Return True to indicate success
+    return True
+
+def ShowMacros(date):
+    # Show macro data that were logged on <date>
+    # Date has to be a string of D/M/Y - 10/8/2019 for 10 August 2019
+    if len(date.split("/")) < 3:
+        # TODO: Allow just a D/M date to passed,
+        # which means that the year parameter defaults to the current year.
+        print("Invalid date: {}".format(date))
+        return
+    query = "SELECT {} FROM Macros WHERE Date=?".format(", ".join(macros.Macros._fields))
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute(query, (date,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    else:
+        # For purposes of making the UI loosely coupled, return a tuple here
+        result = {}
+        for key in row.keys():
+            result[key] = row[key]
+
+        return macros.Macros(**result)
 
 def ExportDatabase():
     # Export the database into HTML, SQL, whatever.
@@ -117,7 +165,11 @@ def MergeDatabase():
 
 def DeleteDatabase():
     # Delete the database file.
-    os.remove(DATABASE)
+    try:
+        os.remove(DATABASE)
+    except (FileNotFoundError, PermissionError) as exception:
+        print("Could not remove database: {}".format(exception))
+
 # SQLite update statement:
 # UPDATE table 
 # SETcolumn1 = value1, column2 = value2

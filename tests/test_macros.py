@@ -1,8 +1,6 @@
 # Test functions in the macros.py file
 
 import unittest
-import sys
-sys.path.append("..")
 import macros
 
 class TestMacroFunctions(unittest.TestCase):
@@ -16,9 +14,7 @@ class TestMacroFunctions(unittest.TestCase):
         potato = macros.Macros(Calories=385, Fat=0.45, Carbs=81, Fiber=11, Protein=10, Water=395, Sodium=30)
         beetroot = macros.Macros(Calories=215, Fat=1, Carbs=34, Fiber=14, Protein=8, Water=438, Sodium=390)
         apple = macros.Macros(Calories=260, Fat=1, Carbs=57, Fiber=12, Protein=1.5, Water=428, Sodium=5)
-
+        
         self.assertEqual(potato, macros.CalculateMacros("Potato", 500))
         self.assertEqual(beetroot, macros.CalculateMacros("Beetroot", 500))
         self.assertEqual(apple, macros.CalculateMacros("Apple", 500))
-
-unittest.main()
