@@ -1,92 +1,53 @@
-# Run tests on the database module code
-import unittest
+from database import database
+from database import macros
+from database import datehandler
 import sqlite3
+import unittest
 
-import database
-from macros import Macros
-# Set the database file to our temporary test one
-# We create this test database, run all tests on it, and then remove it.
-# This file path setting only happens when running tests,
-# it does not affect the program's "real" runtime paths.
-database.DATABASE = database.LOCALPATH + "tests/test_database.db"
+database.DATABASE = "tests/database.db"
 
-class TestDatabaseFunctions(unittest.TestCase):
-
+class TestDatabase(unittest.TestCase):
     def test_MakeDatabase(self):
-        # Test the MakeDatabase() function
-        # and ensure all tables are created
+        # Test the MakeDatabase function
         database.MakeDatabase()
-
-        # Check that all tables exist.
-        query = "SELECT name FROM sqlite_master WHERE type='table'"
+        # Now let's make sure all tables exist
         conn = sqlite3.connect(database.DATABASE)
         cursor = conn.cursor()
-        cursor.execute(query)
-        tables = cursor.fetchall()
-        
-        # Test that all our tables exist
-        self.assertIn(('Macros',), tables)
-        self.assertIn(('Settings',), tables)
-        self.assertIn(('Foods',), tables)
-        # Now test that all columns match the ones we need
-        # First the Macros table.
-        cursor.execute("SELECT * FROM Macros")
-        columns = tuple([column[0] for column in cursor.description])
-        self.assertEqual(columns, ("ID", *Macros._fields, "Date",))
-        # Now the Settings table.
-        cursor.execute("SELECT * FROM Settings")
-        columns = tuple([column[0] for column in cursor.description])
-        self.assertEqual(columns, ("ID", *Macros._fields,))
-        # Now the foods table
-        cursor.execute("SELECT * FROM Foods")
-        columns = tuple([column[0] for column in cursor.description])
-        self.assertEqual(columns, ("ID", "Name", "Weight", "Date",))
-        database.DeleteDatabase()
-
-    def test_UpdateMacros(self):
-        database.MakeDatabase()
-        database.UpdateMacros("Potato", 500)
-        potato = Macros(Calories=385, Fat=0.45, Carbs=81, Fiber=11, Protein=10, Water=395, Sodium=30)
-        query = "SELECT Calories, Fat, Carbs, Fiber, Protein, Water, Sodium FROM Macros WHERE Date=?"
-        # Connect
-        conn = sqlite3.connect(database.DATABASE)
-        cursor = conn.cursor()
-        cursor.execute(query, (database.TODAY,))
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        names = cursor.fetchall()
+        self.assertIn((database.TABLE_MACROS,), names)
+        self.assertIn((database.TABLE_SETTINGS,), names)
+        self.assertIn((database.TABLE_FOODS,), names)
+        cursor.execute("SELECT {} FROM {}".format(", ".join(macros.Macros._fields), database.TABLE_SETTINGS))
+        # Verify that all columns in the user settings table have been initialized to zero
+        expected = tuple([0 for x in macros.Macros._fields])
         row = cursor.fetchone()
-        self.assertEqual(row, potato)
-        # Now check the Foods database for the entry
-        cursor.execute("SELECT Name, Weight FROM Foods WHERE Date=?", (database.TODAY,))
-        row = cursor.fetchone()
-        self.assertEqual(row, ("Potato", 500))
-        database.DeleteDatabase()
+        self.assertEqual(row, expected)
 
-    def test_UpdateUserSettings(self):
+        # Remove the database
+        database.RemoveDatabase()
+
+    def test_CalculateMacros(self):
+        potato = [77, 0.09, 16.2, 2.2, 2, 79, 6]
+        doublePotato = tuple([macro*2 for macro in potato])
+        result = macros.CalculateMacros("Potato", 200)
+        self.assertEqual(result, doublePotato)
+
+    def test_AddFoodAndGetMacros(self):
+        # Test the functions AddFood() and GetMacrosByDate()
         database.MakeDatabase()
-        settings = Macros(Calories=1800, Fat=15, Carbs=350, Fiber=70, Protein=50, Water=1000, Sodium=7000)
-        # Call the function
+        # Add
+        database.AddFood("Potato", 100)
+        macroValues = (77, 0.09, 16.2, 2.2, 2, 79, 6)
+        # Get
+        self.assertEqual(database.GetTodayMacros(), macroValues)
+        database.RemoveDatabase()
+
+    def test_UpdateAndGetUserSettings(self):
+        # Test the functions UpdateUserSettings() and GetUserSettings()
+        database.MakeDatabase()
+        settings = macros.Macros(Calories=2000, Fat=10, Carbs=360, Fiber=60, Protein=50, Water=1000, Sodium=7000)
         database.UpdateUserSettings(settings)
-        query = "SELECT Calories, Fat, Carbs, Fiber, Protein, Water, Sodium FROM Settings"
-        conn = sqlite3.connect(database.DATABASE)
-        cursor = conn.cursor()
-        cursor.execute(query)
-        row = cursor.fetchone()
-        # Assert that the settings are equal
-        self.assertEqual(len(row), len(settings))
-        self.assertEqual(row, settings)
-        database.DeleteDatabase()
-
-    def test_ShowMacros(self):
-        database.MakeDatabase()
-        # 500g
-        potato = Macros(Calories=385, Fat=0.45, Carbs=81, Fiber=11, Protein=10, Water=395, Sodium=30)
-        database.UpdateMacros("Potato", 500)
-        dbMacros = database.ShowMacros(database.TODAY)
-        # Assertions
-        self.assertEqual(dbMacros, potato)
-        # Now test for non existent date
-        self.assertEqual(database.ShowMacros("1/1/1"), None)
-        # Update again, check that the correct macros for 1kg of potatoes are set
-        database.UpdateMacros("Potato", 500)
-        self.assertEqual(database.ShowMacros(database.TODAY), (770, 0.90, 162, 22, 20, 790, 60))
-        
-        database.DeleteDatabase()
+        # Now check that the settings were added
+        self.assertEqual(database.GetUserSettings(), settings)
+        database.RemoveDatabase()

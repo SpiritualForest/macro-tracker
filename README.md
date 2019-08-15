@@ -1,1 +1,1 @@
-# Macro tracker application. Documentation will soon follow.
+### Macro tracker application. Documentation will soon follow.

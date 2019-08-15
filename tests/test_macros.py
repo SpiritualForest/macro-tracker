@@ -1,7 +1,7 @@
 # Test functions in the macros.py file
 
 import unittest
-import macros
+from database import macros
 
 class TestMacroFunctions(unittest.TestCase):
     def test_CalculateMacros(self):
