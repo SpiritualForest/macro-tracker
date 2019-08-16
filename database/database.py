@@ -85,7 +85,7 @@ def AddMacros(food, weight):
     success = UpdateMacros(macroValues)
     return success
 
-def AddFood(food, weight):
+def AddFood(food, weight, date=None):
     # API function.
     if food not in macros.data or weight < 0:
         # Food doesn't exist or weight is less than 0.
@@ -147,6 +147,19 @@ def GetTodayMacros():
         for key in row.keys():
             result[key] = row[key]
         return macros.Macros(**result)
+
+def GetMacros(start, end):
+    # Get the macros for all the dates from <start> to <end> (inclusive)
+    # start and end are datetime.datetime() objects containing only the date.
+    # returns a tuple of tuples, containing the results
+    startTimestamp = datehandler.GetTimestampFromDate(start)
+    endTimestamp = datehandler.GetTimestampFromDate(end)
+    query = "SELECT {}, Date FROM {} WHERE Date >= ? AND Date <= ?;".format(", ".join(macros.Macros._fields), TABLE_MACROS)
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    cursor.execute(query, (startTimestamp, endTimestamp))
+    rows = tuple(cursor.fetchall())
+    return rows
 
 def GetUserSettings():
     # Get the user's target settings

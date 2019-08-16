@@ -17,3 +17,10 @@ def GetDaysAgo(n):
     today = _getToday()
     daysAgo = datetime.datetime(*today) - datetime.timedelta(days=n)
     return daysAgo.timestamp()
+
+def GetTimestampFromDate(datetimeObject):
+    return datetimeObject.timestamp()
+
+def GetDateFromTimestamp(timestamp):
+    # Performs the opposite conversion: Unix epoch to a datetime object
+    return datetime.datetime.fromtimestamp(timestamp)

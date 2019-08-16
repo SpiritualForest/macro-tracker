@@ -34,7 +34,7 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(result, doublePotato)
 
     def test_AddFoodAndGetMacros(self):
-        # Test the functions AddFood() and GetMacrosByDate()
+        # Test the functions AddFood() and GetTodayMacros()
         database.MakeDatabase()
         # Add
         database.AddFood("Potato", 100)
