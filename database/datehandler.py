@@ -1,6 +1,7 @@
 # Date handler
 # We have to convert a given date to a unix epoch time
 import datetime
+import calendar
 
 def _getToday():
     today = datetime.date.today()
@@ -33,3 +34,9 @@ def GetTimestampFromDate(datetimeObject):
 def GetDateFromTimestamp(timestamp):
     # Performs the opposite conversion: Unix epoch to a datetime object
     return datetime.datetime.fromtimestamp(timestamp)
+
+def GetDateString(timestamp):
+    # Get a string of the date: "15 January 2019", from a unix epoch
+    datetimeObject = GetDateFromTimestamp(timestamp)
+    month = calendar.month_name[datetimeObject.month]
+    return "{} {} {}".format(datetimeObject.day, month, datetimeObject.year)

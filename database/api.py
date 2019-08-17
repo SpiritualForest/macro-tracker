@@ -31,3 +31,22 @@ def AddFood(foodId, weight, date=None):
     foodName = macros.foodIds[foodId]
     success = database.AddFood(foodName, weight, date)
     return success
+
+def ListMacros():
+    # return a list of all available macros
+    # for which a target amount can be set
+    return macros.Macros._fields
+
+def SetMacros(macroValues):
+    # Update the user's settings.
+    # A None value indicates the parameter should not be changed
+    success = database.UpdateUserSettings(macroValues)
+    return success
+
+def ShowTargets():
+    # return the user settings for the macros
+    values, date = database.GetUserSettings()
+    if date is not None:
+        # Get a string like "12 May 2016" from the unix timestamp
+        date = datehandler.GetDateString(date)
+    return (values, date)

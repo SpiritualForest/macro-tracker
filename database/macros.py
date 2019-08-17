@@ -9,7 +9,8 @@
 from collections import namedtuple
 
 # All macro values are in grams, except sodium which is in milligrams (mg)
-Macros = namedtuple("Macros", "Calories Fat Carbs Fiber Protein Water Sodium")
+fields = ("Calories", "Fat", "Carbs", "Fiber", "Protein", "Water", "Sodium")
+Macros = namedtuple("Macros", fields, defaults=(None,) * len(fields))
 
 # Strings for displaying data after retrieval from the database
 units = {

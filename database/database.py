@@ -26,10 +26,10 @@ def MakeDatabase():
         
         # Settings table
         cursor.execute("CREATE TABLE {} (ID integer primary key autoincrement, {}, Date real);".format(TABLE_SETTINGS, macroColumns))
-        # Initialize all settings to 0, date to NULL because the settings were never updated
+        # Initialize all settings to NULL, to indicate that the settings were never updated
         macroNames = ", ".join([macro for macro in macros.Macros._fields])
-        zeroes = ", ".join(["0" for x in macros.Macros._fields])
-        cursor.execute("INSERT INTO {} ({}, Date) VALUES ({}, NULL)".format(TABLE_SETTINGS, macroNames, zeroes))
+        nulls = ", ".join(["NULL" for x in macros.Macros._fields])
+        cursor.execute("INSERT INTO {} ({}, Date) VALUES ({}, NULL)".format(TABLE_SETTINGS, macroNames, nulls))
          
         # Food weight log table
         cursor.execute("CREATE TABLE {} (ID integer primary key autoincrement, Name text, Weight real, Date real);".format(TABLE_FOODS))
@@ -90,6 +90,7 @@ def AddMacros(food, weight, date):
     return success
 
 def AddFood(food, weight, date=None):
+    # TODO: allow specification of weight unit (g, kg)
     # API function.
     if food not in macros.data or weight < 0:
         # Food doesn't exist or weight is less than 0.
@@ -124,14 +125,27 @@ def UpdateUserSettings(macroValues):
         # Incorrect data?
         print("Incorrect data supplied to UpdateUserSettings(): {}".format(macroValues))
         return
+    updateKeys, updateValues = [], []
+    for field in macroValues._fields:
+        value = getattr(macroValues, field)
+        if value is None:
+            # It's None, skip it
+            continue
+        # If we reached here, it's a value that needs to be updated
+        updateKeys.append(field)
+        updateValues.append(value)
+    
+    if not updateKeys:
+        # All values were None. Nothing to update.
+        return
 
-    questionMarks = ", ".join(["{}=?".format(field) for field in macros.Macros._fields])
+    questionMarks = ", ".join(["{}=?".format(field) for field in updateKeys])
     date = datehandler.GetToday()
     # No WHERE because there's only one row at all times in this table, which is initialized to 0.
     sqlStatement = "UPDATE {} SET {}, Date=?".format(TABLE_SETTINGS, questionMarks)
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    cursor.execute(sqlStatement, (*macroValues, date,))
+    cursor.execute(sqlStatement, (*updateValues, date,))
     conn.commit()
     conn.close()
     # Return True to indicate success
@@ -167,11 +181,14 @@ def GetMacros(start, end=None):
     cursor = conn.cursor()
     cursor.execute(query, (startTimestamp, endTimestamp))
     rows = tuple(cursor.fetchall())
+    conn.close()
     return rows
 
 def GetUserSettings():
     # Get the user's target settings
-    query = "SELECT {} FROM {}".format(", ".join(macros.Macros._fields), TABLE_SETTINGS)
+    # and the date they were set on
+    # returns a tuple of (Macros, unix epoch)
+    query = "SELECT {}, Date FROM {}".format(", ".join(macros.Macros._fields), TABLE_SETTINGS)
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -183,9 +200,13 @@ def GetUserSettings():
         return None
     else:
         result = {}
-        for key in row.keys():
+        # Iterate until the second to last element,
+        # these ones go into our result dict.
+        # The date is the last element and will be pulled separately.
+        for key in row.keys()[:-1]:
             result[key] = row[key]
-        return macros.Macros(**result)
+        date = row["Date"]
+        return (macros.Macros(**result), date)
 
 def ExportDatabase():
     # Export the database into HTML, SQL, whatever.
