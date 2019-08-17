@@ -1,4 +1,7 @@
 # Handle the database stuff for logging user data
+# FIXME: there should be one sqlite3 connection object that's active
+# from the moment the application starts until it exits.
+# Do not create another connection object for every single command.
 import sqlite3
 import os # for os.remove()
 # Now our own project's code
@@ -22,11 +25,11 @@ def MakeDatabase():
         cursor.execute("CREATE TABLE {} (ID integer primary key autoincrement, {}, Date real);".format(TABLE_MACROS, macroColumns))
         
         # Settings table
-        cursor.execute("CREATE TABLE {} (ID integer primary key autoincrement, {});".format(TABLE_SETTINGS, macroColumns))
-        # Initialize all settings to 0
+        cursor.execute("CREATE TABLE {} (ID integer primary key autoincrement, {}, Date real);".format(TABLE_SETTINGS, macroColumns))
+        # Initialize all settings to 0, date to NULL because the settings were never updated
         macroNames = ", ".join([macro for macro in macros.Macros._fields])
         zeroes = ", ".join(["0" for x in macros.Macros._fields])
-        cursor.execute("INSERT INTO {} ({}) VALUES ({})".format(TABLE_SETTINGS, macroNames, zeroes))
+        cursor.execute("INSERT INTO {} ({}, Date) VALUES ({}, NULL)".format(TABLE_SETTINGS, macroNames, zeroes))
          
         # Food weight log table
         cursor.execute("CREATE TABLE {} (ID integer primary key autoincrement, Name text, Weight real, Date real);".format(TABLE_FOODS))
@@ -40,10 +43,11 @@ def MakeDatabase():
         print("Database creation failed: {}".format(exception))
         return False # failure
 
-def UpdateMacros(macroValues):
+def UpdateMacros(macroValues, date):
     # Update the day's macros in the database.
     # If this is the first insertion of the day, insert a new row.
     # Otherwise, update the existing row's values.
+    # macroValues should be a Macros() tuple, date should be a unix epoch float
     if macroValues._fields != macros.Macros._fields:
         # Wrong data structure supplied?
         return False
@@ -53,7 +57,7 @@ def UpdateMacros(macroValues):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     # Select only the macro values from the database, based on today's date (string we made up)
-    cursor.execute("SELECT {} FROM {} WHERE Date=?".format(", ".join(macroValues._fields), TABLE_MACROS), (datehandler.GetToday(),))
+    cursor.execute("SELECT {} FROM {} WHERE Date=?".format(", ".join(macroValues._fields), TABLE_MACROS), (date,))
     row = cursor.fetchone()
         # Now let's start preparing our INSERT or UPDATE statement
     if not row:
@@ -65,7 +69,7 @@ def UpdateMacros(macroValues):
         # Results in a string of "?, ?, ?, [...]" of however many values exist.
         questionMarks = ", ".join(["?" for x in macroValues._fields])
         sqlStatement = "INSERT INTO {} ({}, Date) VALUES ({}, ?)".format(TABLE_MACROS, ", ".join(macroValues._fields), questionMarks)
-        cursor.execute(sqlStatement, (*macroValues, datehandler.GetToday()))
+        cursor.execute(sqlStatement, (*macroValues, date))
     else:
         # A previous insertion has already occurred today.
         # This time we update the values by adding the new values to the old ones.
@@ -73,16 +77,16 @@ def UpdateMacros(macroValues):
         # This time we need question marks that are like "?=?, ?=?, ?=?" for our parameters.
         questionMarks = ", ".join(["{}=?".format(key) for key in row.keys()])
         sqlStatement = "UPDATE {} SET {} WHERE Date=?".format(TABLE_MACROS, questionMarks)
-        cursor.execute(sqlStatement, (*updatedValues, datehandler.GetToday()))
+        cursor.execute(sqlStatement, (*updatedValues, date))
     # Commit the changes and close the connection
     conn.commit()
     conn.close()
     # return True to indicate success
     return True
 
-def AddMacros(food, weight):
+def AddMacros(food, weight, date):
     macroValues = macros.CalculateMacros(food, weight)
-    success = UpdateMacros(macroValues)
+    success = UpdateMacros(macroValues, date)
     return success
 
 def AddFood(food, weight, date=None):
@@ -92,7 +96,10 @@ def AddFood(food, weight, date=None):
         return False
 
     # Now try to add the macros
-    success = AddMacros(food, weight)
+    if not date:
+        # No date supplied, we default to today's date
+        date = datehandler.GetToday()
+    success = AddMacros(food, weight, date)
     if not success:
         # Database update failed
         return
@@ -103,7 +110,7 @@ def AddFood(food, weight, date=None):
     # Now insert the food and weight into the foods table
     # This one is always INSERT INTO
     sqlStatement = "INSERT INTO {} (Name, Weight, Date) VALUES (?, ?, ?)".format(TABLE_FOODS)
-    cursor.execute(sqlStatement, (food, weight, datehandler.GetToday(),))
+    cursor.execute(sqlStatement, (food, weight, date,))
     # Commit the changes and close the connection
     conn.commit()
     conn.close()
@@ -119,11 +126,12 @@ def UpdateUserSettings(macroValues):
         return
 
     questionMarks = ", ".join(["{}=?".format(field) for field in macros.Macros._fields])
+    date = datehandler.GetToday()
     # No WHERE because there's only one row at all times in this table, which is initialized to 0.
-    sqlStatement = "UPDATE {} SET {}".format(TABLE_SETTINGS, questionMarks)
+    sqlStatement = "UPDATE {} SET {}, Date=?".format(TABLE_SETTINGS, questionMarks)
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    cursor.execute(sqlStatement, macroValues)
+    cursor.execute(sqlStatement, (*macroValues, date,))
     conn.commit()
     conn.close()
     # Return True to indicate success
@@ -148,7 +156,7 @@ def GetTodayMacros():
             result[key] = row[key]
         return macros.Macros(**result)
 
-def GetMacros(start, end):
+def GetMacros(start, end=None):
     # Get the macros for all the dates from <start> to <end> (inclusive)
     # start and end are datetime.datetime() objects containing only the date.
     # returns a tuple of tuples, containing the results

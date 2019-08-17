@@ -12,6 +12,15 @@ def GetToday():
     datetimeToday = datetime.datetime(*today)
     return datetimeToday.timestamp()
 
+def GetDatetimeObject(day, month, year):
+    # construct a datetime object and return it
+    return datetime.datetime(year, month, day)
+
+def GetYear():
+    # returns the current year
+    today = _getToday()
+    return today.year
+
 def GetDaysAgo(n):
     # Get the unix timestamp from n days ago
     today = _getToday()

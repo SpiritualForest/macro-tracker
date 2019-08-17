@@ -1,4 +1,4 @@
-from ui.cli import cli
+from ui import cli
 from ui.gui import gui
 
 UI_CLI = "cli"
