@@ -33,6 +33,10 @@ data = {
         "Apple": Macros(Calories=52, Fat=0.2, Carbs=11.4, Fiber=2.4, Protein=0.3, Water=85.6, Sodium=1),
         "Tomato": Macros(Calories=18, Fat=0.2, Carbs=2.7, Fiber=1.2, Protein=0.9, Water=94.5, Sodium=5),
         "Onion": Macros(Calories=40, Fat=0.1, Carbs=7.6, Fiber=1.7, Protein=1.1, Water=89.1, Sodium=4),
+        "Garlic": Macros(Calories=149, Fat=0.5, Carbs=31, Fiber=2.1, Protein=6.4, Water=58.6, Sodium=17),
+        "Zucchini": Macros(Calories=16, Fat=0.2, Carbs=2.2, Fiber=1.1, Protein=1.2, Water=94.6, Sodium=10),
+        "Eggplant": Macros(Calories=24, Fat=0.2, Carbs=2.3, Fiber=3.4, Protein=1, Water=92.4, Sodium=2),
+        "Cabbage": Macros(Calories=25, Fat=0.1, Carbs=3.3, Fiber=2.5, Protein=1.3, Water=92.2, Sodium=18),
         # Beans, lentils, etc
         # NOTE: macros for dry, not cooked.
         "Brown beans": Macros(Calories=320, Fat=1.5, Carbs=45, Fiber=16, Protein=22, Water=0, Sodium=100),
@@ -43,6 +47,7 @@ data = {
         # Processed
         "Barley groats": Macros(Calories=340, Fat=2, Carbs=66, Fiber=11, Protein=8, Water=0, Sodium=5),
         "Rye flakes": Macros(Calories=332, Fat=2, Carbs=60, Fiber=17, Protein=10, Water=0, Sodium=2),
+        "Oat flakes": Macros(Calories=364, Fat=7.5, Carbs=54, Fiber=11, Protein=14, Water=0, Sodium=0),
         "K-Menu canned white mushrooms": Macros(Calories=18, Fat=0.2, Carbs=0.9, Fiber=2.2, Protein=2.1, Water=170, Sodium=600),
         "Marmite": Macros(Calories=260, Fat=0.5, Carbs=30, Fiber=1.1, Protein=34, Water=0, Sodium=10800),
         "K-Menu crushed tomatoes": Macros(Calories=27, Fat=0.2, Carbs=4, Fiber=1.5, Protein=1.2, Water=94.5, Sodium=0),

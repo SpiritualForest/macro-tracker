@@ -42,7 +42,9 @@ class MacrotrackerShell(cmd.Cmd):
         success = api.AddFood(foodId, weight, date)
         if success:
             foodName = foodIds[foodId]
+            print("---")
             print("Macros updated. Added {}g of {}".format(weight, foodName))
+            print("---")
     
     def help_addfood(self):
         print("---")
@@ -113,11 +115,28 @@ class MacrotrackerShell(cmd.Cmd):
             print("{}: {}".format(field, value))
         print("---")
 
+    def do_gettodaymacros(self, arg):
+        # Temporary function just to show today's macros
+        values = api.GetTodayMacros()
+        print("---")
+        if not values:
+            # Empty or None
+            print("No macros tracked today.")
+            return
+        # Got some
+        for field in values._fields:
+            value = getattr(values, field)
+            print("{}: {}".format(field, value))
+        print("---")
+
+
     def do_listfoods(self, arg):
         "List the available foods and their IDs"
+        print("---")
         foods = api.ListFoods()
         for food in foods:
             print("{} (id {})".format(foods[food], food))
+        print("---")
     
     def do_listmacros(self, arg):
         'List the available macros for which a target amount can be set.'

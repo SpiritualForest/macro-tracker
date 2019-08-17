@@ -50,3 +50,7 @@ def ShowTargets():
         # Get a string like "12 May 2016" from the unix timestamp
         date = datehandler.GetDateString(date)
     return (values, date)
+
+def GetTodayMacros():
+    # FIXME: remove this temporary function, this is just for testing
+    return database.GetTodayMacros()
