@@ -1,12 +1,31 @@
 import cmd
 import re
 from database import api
-from database.datehandler import GetDateString
+from database.datehandler import GetDateString, GetYear, GetDaysAgo
 from database.macros import foodIds, Macros, units # Just for names
 import config
 
-dateMatch = re.compile("(\d+)/(\d+)/?(\d+)") # d/m/y
+dateMatch = re.compile("^(\d+)[/\.](\d+)[/\.]?(\d+)?") # Matches both d/m/y and d.m.y with year parameter optional
 unitMatch = re.compile("(\d+)(g$|kg$|mg$)")
+timeStringMatch = re.compile("^(\d+)(d|w|m|y)$") # 2d, 10m, 5w, 3y
+
+def MatchDateString(dateString):
+    # match the date string
+    # and return a tuple of (d, m, y)
+    # or None if not found
+    try:
+        day, month, year = dateMatch.findall(dateString).pop()
+        if not year:
+            # No year supplied,
+            # Default to the current year.
+            year = GetYear()
+        # Form the date tuple
+        date = (int(day), int(month), int(year))
+        return date
+
+    except IndexError:
+        # Pop from an empty list, means there was no re match.
+        return None    
 
 class MacrotrackerShell(cmd.Cmd):
     intro = 'Macrotracker {} - use "help" to list all the commands.\n'.format(config.version)
@@ -16,10 +35,10 @@ class MacrotrackerShell(cmd.Cmd):
         params = arg.split()
         date = None
         if len(params) < 2:
-            print("Not enough parameters. Syntax: ADDFOOD <id> <weight in grams> [/d/m/y]")
+            print("Not enough parameters. Syntax: ADDFOOD <id> <weight in grams> [/d/m[/y]]")
             return
         if len(params) > 3:
-            print("Too many parameters. Syntax: ADDFOOD <id> <weight in grams> [d/m/y]")
+            print("Too many parameters. Syntax: ADDFOOD <id> <weight in grams> [d/m[/y]]")
             return
         # At least two parameters supplied
         if len(params) == 3:
@@ -132,11 +151,75 @@ class MacrotrackerShell(cmd.Cmd):
         print("---")
 
     def do_getmacros(self, arg):
-        # TODO: allow parameters for date ranges
+        # Get the macros tracked in the specified period of time
         args = arg.split()
+        startDate, endDate = None, None
         results = {}
-        if not args:
-            results = api.GetMacros()
+        if args:
+            modeArg = args.pop(0)
+            # mode can be --date/-d <date>, --daterange/-dr <start> <end>, --fromlast/-fl <N><d(ay)|w(eek)|m(onth)|y(ear)>
+            if modeArg in ("--date", "-d"):
+                # Single day's macros
+                if not args:
+                    # No date supplied
+                    print("Error. No date supplied.")
+                    return
+                elif len(args) > 1:
+                    # Too many parameters given
+                    print("Error. Too many parameters supplied for date argument.")
+                    return
+                # Match the date
+                argString = args.pop()
+                startDate = MatchDateString(argString)
+                if not startDate:
+                    # No match
+                    print("Error parsing parameter for date argument. Use D.M[.Y] or D/M[/Y]. Year is optional.")
+                    return
+                endDate = startDate # Same date on this occasion
+
+            # Now date ranges
+            elif modeArg in ("--daterange", "-dr"):
+                if len(args) < 2:
+                    # Not enough parameters
+                    print("Error. Not enough parameters.")
+                    return
+                # Match the dates
+                startDate, endDate = MatchDateString(args[0]), MatchDateString(args[1])
+                if not startDate or not endDate:
+                    # One of the strings didn't match
+                    print("Error parsing parameter for date argument. Use D.M[.Y] or D/M[/Y]. Year is optional.")                    
+                    return
+            # Now --fromlast
+            elif modeArg in ("--fromlast", "-fl"):
+                # Get all macros that were tracked from the last N day/week/month/year ago until today
+                if not args:
+                    print("Error. Not enough parameters.")
+                    return
+                try:
+                    time, timeString = timeStringMatch.findall(args.pop()).pop()
+                    time = int(time)
+                    if timeString == "w":
+                        # week
+                        time *= 7
+                    elif timeString == "m":
+                        # month
+                        time *= 30
+                    elif timeString == "y":
+                        # year
+                        time *= 365
+                    dateDaysAgo = GetDaysAgo(time) # datetime object representing the date from <time> days ago
+                    startDate = (dateDaysAgo.day, dateDaysAgo.month, dateDaysAgo.year)
+                except IndexError:
+                    # pop from empty list again, no match
+                    print("Error parsing time string parameter.")
+                    return
+            else:
+                print('Unknown parameter. See "help getmacros"')
+                return
+
+        # Call the API function  with the dates
+        # If the dates are both None, will default to today's date (see api.py)
+        results = api.GetMacros(startDate, endDate)
         if not results:
             print("No macros tracked for the specified period of time.")
             return
@@ -145,7 +228,24 @@ class MacrotrackerShell(cmd.Cmd):
             print("Macros for {}:".format(GetDateString(date)))
             m = results[date]
             for field in m._fields:
-                print("{}: {}{}".format(field, getattr(m, field), units[field]))
+                print("{}: {}{}".format(field, round(getattr(m, field), 3), units[field]))
+            print("---")
+    
+    def help_getmacros(self):
+        print("---")
+        print("Get the macros that were tracked at the time periods specified.")
+        print("If no parameters are given, gets the macros from today.")
+        print("Multiple parameters accepted:")
+        print("GETMACROS --date/-d <d.m[.y> to get the macros from the given date. If the year parameter is omitted, defaults to the current year.")
+        print("Example: GETMACROS --date 17.8 for 17 August of this year.")
+        print("---")
+        print("GETMACROS --daterange/-dr <start date> <end date>")
+        print("Example: GETMACROS --daterange 4.8.2019 10.8.2019 to get the macros from 4-10 August 2019. Year is optional.")
+        print("---")
+        print("GETMACROS --fromlast/-fl <N><d|w|m|y>")
+        print("Example: GETMACROS --fromlast 35d to get all the macros that were tracked in the last 35 days.")
+        print('Time units accepted: "d" for day, "w" for week, "m" for month, "y" for year.')
+        print("Example: GETMACROS -fl 2w to get the macros that were tracked in the last 2 weeks, up to today.")
         print("---")
 
     def do_getfoods(self, arg):
@@ -153,12 +253,10 @@ class MacrotrackerShell(cmd.Cmd):
         date = None
         if arg:
             # parse the date
-            found = dateMatch.findall(arg)
-            if not found:
-                print("Error parsing date parameter. Use D/M/Y - 10/8/2019 for 10 August 2019")
+            date = MatchDateString(arg)
+            if not date:
+                print("Error parsing date parameter. Use D.M[.Y] or D/M[/Y]. Year is optional.")
                 return
-            day, month, year = found.pop()
-            date = tuple(map(int, (day, month, year)))
         foods, dateString = api.GetFoods(date)
         print("---")
         if not foods:

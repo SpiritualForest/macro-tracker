@@ -40,7 +40,7 @@ class TestDatabase(unittest.TestCase):
         database.AddFood("Potato", 100)
         macroValues = (77, 0.09, 16.2, 2.2, 2, 79, 6)
         # Get
-        self.assertEqual(database.GetTodayMacros(), macroValues)
+        self.assertEqual(database.GetMacros(datehandler.GetToday())[datehandler.GetToday()], macroValues)
         database.RemoveDatabase()
 
     def test_UpdateAndGetUserSettings(self):

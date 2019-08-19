@@ -65,7 +65,9 @@ def GetFoods(date=None):
     return (foods, dateString)
 
 def GetMacros(start=None, end=None):
+    # Get the macros that were tracked on the days between <start> and <end>, inclusive
     # start and end are tuples of (day, month, year) values
+    # if start and end are None, will default to today's date in the database function (GetMacros() database.by)
     startTimestamp = datehandler.GetToday()
     if start:
         startTimestamp = datehandler.GetTimestampFromDate(datehandler.GetDatetimeObject(*start))

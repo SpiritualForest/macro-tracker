@@ -44,8 +44,8 @@ def MakeDatabase():
         return False # failure
 
 def UpdateMacros(macroValues, date):
-    # Update the day's macros in the database.
-    # If this is the first insertion of the day, insert a new row.
+    # Update the date's macros in the database.
+    # If this is the first insertion for the date, insert a new row.
     # Otherwise, update the existing row's values.
     # macroValues should be a Macros() tuple, date should be a unix epoch float
     if macroValues._fields != macros.Macros._fields:
@@ -56,13 +56,13 @@ def UpdateMacros(macroValues, date):
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    # Select only the macro values from the database, based on today's date (string we made up)
+    # Select only the macro values from the database that were logged on the date
     cursor.execute("SELECT {} FROM {} WHERE Date=?".format(", ".join(macroValues._fields), TABLE_MACROS), (date,))
     row = cursor.fetchone()
         # Now let's start preparing our INSERT or UPDATE statement
     if not row:
-        # Empty row indicates that nothing from today was found.
-        # This means it's the first insertion attempt for today,
+        # Empty row indicates that nothing from the date was found.
+        # This means it's the first insertion attempt for it,
         # therefore we use INSERT INTO.
         # Now we generate the parameter-holding question marks,
         # depending on how many macro values we have.
@@ -71,7 +71,7 @@ def UpdateMacros(macroValues, date):
         sqlStatement = "INSERT INTO {} ({}, Date) VALUES ({}, ?)".format(TABLE_MACROS, ", ".join(macroValues._fields), questionMarks)
         cursor.execute(sqlStatement, (*macroValues, date))
     else:
-        # A previous insertion has already occurred today.
+        # A previous insertion has already occurred on the given date.
         # This time we update the values by adding the new values to the old ones.
         updatedValues = [getattr(macroValues, key) + row[key] for key in row.keys()]
         # This time we need question marks that are like "?=?, ?=?, ?=?" for our parameters.
@@ -90,7 +90,6 @@ def AddMacros(food, weight, date):
     return success
 
 def AddFood(food, weight, date=None):
-    # TODO: allow specification of weight unit (g, kg)
     # API function.
     if food not in macros.data or weight < 0:
         # Food doesn't exist or weight is less than 0.
@@ -151,25 +150,6 @@ def UpdateUserSettings(macroValues):
     # Return True to indicate success
     return True
 
-def GetTodayMacros():
-    # Show macro data that were logged on the given date (day/month/year)
-    query = "SELECT {} FROM {} WHERE Date=?".format(", ".join(macros.Macros._fields), TABLE_MACROS)
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    cursor.execute(query, (datehandler.GetToday(),))
-    # Since we always update the values for the same date, there will only ever be one row for each date
-    row = cursor.fetchone()
-    conn.close()
-    if not row:
-        return None
-    else:
-        # Return a tuple of the result
-        result = {}
-        for key in row.keys():
-            result[key] = row[key]
-        return macros.Macros(**result)
-
 def GetMacros(start, end=None):
     # Get the macros for all the dates from <start> to <end> (inclusive)
     # returns a tuple of tuples, containing the results
@@ -191,7 +171,7 @@ def GetMacros(start, end=None):
         date = row["Date"]
         subresult = {}
         for key in row.keys()[:-1]:
-            # all except date
+            # all except date (which is the last key)
             subresult[key] = row[key]
         # Final result, sorted by date
         results[date] = macros.Macros(**subresult)

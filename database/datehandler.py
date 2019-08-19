@@ -19,14 +19,13 @@ def GetDatetimeObject(day, month, year):
 
 def GetYear():
     # returns the current year
-    today = _getToday()
-    return today.year
+    year, month, day = _getToday()
+    return year
 
 def GetDaysAgo(n):
-    # Get the unix timestamp from n days ago
+    # returns a datetime object whose date is <n> days ago from today
     today = _getToday()
-    daysAgo = datetime.datetime(*today) - datetime.timedelta(days=n)
-    return daysAgo.timestamp()
+    return datetime.datetime(*today) - datetime.timedelta(days=n)
 
 def GetTimestampFromDate(datetimeObject):
     return datetimeObject.timestamp()
