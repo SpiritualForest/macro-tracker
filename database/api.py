@@ -51,6 +51,25 @@ def ShowTargets():
         date = datehandler.GetDateString(date)
     return (values, date)
 
-def GetTodayMacros():
-    # FIXME: remove this temporary function, this is just for testing
-    return database.GetTodayMacros()
+def GetFoods(date=None):
+    # Get the foods that were logged on <date>
+    # If date is None, default to today
+    if date:
+        timestamp = datehandler.GetTimestampFromDate(datehandler.GetDatetimeObject(*date))
+        date = timestamp
+    else:
+        date = datehandler.GetToday()
+    foods = database.GetFoods(date)
+    # Stringify the date
+    dateString = datehandler.GetDateString(date)
+    return (foods, dateString)
+
+def GetMacros(start=None, end=None):
+    # start and end are tuples of (day, month, year) values
+    startTimestamp = datehandler.GetToday()
+    if start:
+        startTimestamp = datehandler.GetTimestampFromDate(datehandler.GetDatetimeObject(*start))
+    if end:
+        end = datehandler.GetTimestampFromDate(datehandler.GetDatetimeObject(*end))
+    results = database.GetMacros(startTimestamp, end)
+    return results

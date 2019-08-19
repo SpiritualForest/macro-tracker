@@ -172,17 +172,30 @@ def GetTodayMacros():
 
 def GetMacros(start, end=None):
     # Get the macros for all the dates from <start> to <end> (inclusive)
-    # start and end are datetime.datetime() objects containing only the date.
     # returns a tuple of tuples, containing the results
-    startTimestamp = datehandler.GetTimestampFromDate(start)
-    endTimestamp = datehandler.GetTimestampFromDate(end)
+    if not end:
+        # If no end date is specified, default to today
+        end = datehandler.GetToday()
     query = "SELECT {}, Date FROM {} WHERE Date >= ? AND Date <= ?;".format(", ".join(macros.Macros._fields), TABLE_MACROS)
     conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute(query, (startTimestamp, endTimestamp))
-    rows = tuple(cursor.fetchall())
+    cursor.execute(query, (start, end))
+    rows = cursor.fetchall()
     conn.close()
-    return rows
+    if not rows:
+        # Empty
+        return None
+    results = {}
+    for row in rows:
+        date = row["Date"]
+        subresult = {}
+        for key in row.keys()[:-1]:
+            # all except date
+            subresult[key] = row[key]
+        # Final result, sorted by date
+        results[date] = macros.Macros(**subresult)
+    return results
 
 def GetUserSettings():
     # Get the user's target settings
@@ -207,6 +220,25 @@ def GetUserSettings():
             result[key] = row[key]
         date = row["Date"]
         return (macros.Macros(**result), date)
+
+def GetFoods(date=None):
+    # Show the foods logged in the Foods table on <date>
+    # If date is None, default to today
+    if not date:
+        date = datehandler.GetToday()
+    query = "SELECT Name, Weight FROM {} WHERE Date=?".format(TABLE_FOODS)
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    cursor.execute(query, (date,))
+    rows = cursor.fetchall()
+    foods = {} # name: amount
+    for row in rows:
+        name, amount = row
+        try:
+            foods[name] += amount
+        except KeyError:
+            foods[name] = amount
+    return foods  
 
 def ExportDatabase():
     # Export the database into HTML, SQL, whatever.

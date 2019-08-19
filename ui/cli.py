@@ -1,18 +1,18 @@
 import cmd
 import re
 from database import api
-from database.macros import foodIds, Macros # Just for names
+from database.datehandler import GetDateString
+from database.macros import foodIds, Macros, units # Just for names
 import config
 
 dateMatch = re.compile("(\d+)/(\d+)/?(\d+)") # d/m/y
+unitMatch = re.compile("(\d+)(g$|kg$|mg$)")
 
 class MacrotrackerShell(cmd.Cmd):
-    intro = "Macrotracker {} - type ? to list all the commands.\n".format(config.version)
+    intro = 'Macrotracker {} - use "help" to list all the commands.\n'.format(config.version)
     prompt = "macrotracker> "
 
     def do_addfood(self, arg):
-        # TODO: Accept weight units (g, kg)
-        "Update macros for the given date.\nIf the date is omitted, defaults to today.\nSyntax: ADD <id> <weight in grams> [d/m/y]: ADD 1 500 10/8/2019"
         params = arg.split()
         date = None
         if len(params) < 2:
@@ -22,7 +22,6 @@ class MacrotrackerShell(cmd.Cmd):
             print("Too many parameters. Syntax: ADDFOOD <id> <weight in grams> [d/m/y]")
             return
         # At least two parameters supplied
-        date = None
         if len(params) == 3:
             # get the date, must be the last parameter
             found = dateMatch.findall(params.pop())
@@ -32,12 +31,29 @@ class MacrotrackerShell(cmd.Cmd):
             # If we reached here, there was a match
             date = tuple(map(int, found.pop(0)))
         try:
-            params = [float(p) for p in params]
+            # Parse the weight and ID and make them into int/float
+            foodId, weight = params
+            foodId = int(foodId)
+            foundWeight = unitMatch.findall(weight)
+            if not foundWeight:
+                print("Error in parsing weight parameter. Must be Nmg, Ng or Nkg: 720mg, 120g, or 1.2kg depending on unit.")
+                return
+            # Get the weight and the unit
+            weight, unit = foundWeight.pop()
+            # Testing
+            oldweight = float(weight)
+            weight = float(weight)
+            # Now we convert the weight to grams
+            if unit == "kg":
+                # Multiply by 1000
+                weight *= 1000
+            elif unit == "mg":
+                # divide by 1000
+                weight = weight / 1000
         except ValueError:
-            # Cannot proceed, not a floating point number
+            # Cannot proceed, ID or weight is not a digit
             print("Error in parameters. ID and weight must be numbers.")
             return
-        foodId, weight = params
         # Finally, call the API function
         success = api.AddFood(foodId, weight, date)
         if success:
@@ -49,18 +65,18 @@ class MacrotrackerShell(cmd.Cmd):
     def help_addfood(self):
         print("---")
         print("Update macros for the given date.")
-        print("Syntax: ADDFOOD <food id> <weight in grams> [d/m/y]")
+        print("Syntax: ADDFOOD <food id> <weight><unit> [d/m/y]")
         print("The date parameter is a string, day/month/year - 10/8/2019 for 10 August 2019.")
         print("The date parameter is optional, and if omitted, will default to today's date.")
-        print("Example: ADDFOOD 0 500 30/7/2019 to add the macro values for 500 grams of food ID 0 for 30 July 2019.")
-        print("Dateless: ADDFOOD 0 500 to add the macro values for 500 grams of food ID 0 for today's date.")
+        print("Example: ADDFOOD 0 500g 30/7/2019 to add the macro values for 500 grams of food ID 0 for 30 July 2019.")
+        print("Dateless: ADDFOOD 0 1.3kg to add the macro values for 1.3 kilograms (1300 grams) of food ID 0 for today's date.")
         print('Type "listfoods" to view a list of foods and their respective ID.')
         print("---")
 
-    def do_settargets(self, arg):
+    def do_settarget(self, arg):
         if not arg:
             print("Not enough parameters.")
-            print("Syntax: SETTARGETS macroname=value [macroname=value macroname=value]")
+            print("Syntax: SETTARGET macroname=value [macroname=value macroname=value]")
         words = arg.split()
         params = {}
         for word in words:
@@ -89,11 +105,11 @@ class MacrotrackerShell(cmd.Cmd):
             if success:
                 print("Macro targets updated.")
 
-    def help_settargets(self):
+    def help_settarget(self):
         print("---")
         print("Sets the target amount for the given macros.")
-        print("Syntax: SETTARGETS macroname=N [macroname=N macroname=N]")
-        print("Example: SETTARGETS calories=1600 fat=10 protein=80 carbs=300")
+        print("Syntax: SETTARGET macroname=N [macroname=N macroname=N]")
+        print("Example: SETTARGET calories=1600 fat=10 protein=80 carbs=300")
         print("You don't have to set all macros each time. Macros that were omitted from the command will not be updated.")
         print('Type "listmacros" to view all available macros.')
         print("---")
@@ -112,24 +128,54 @@ class MacrotrackerShell(cmd.Cmd):
         print("Targets updated on {}".format(date))
         for field in values._fields:
             value = getattr(values, field)
-            print("{}: {}".format(field, value))
+            print("{}: {}{}".format(field, value, units[field]))
         print("---")
 
-    def do_gettodaymacros(self, arg):
-        # Temporary function just to show today's macros
-        values = api.GetTodayMacros()
-        print("---")
-        if not values:
-            # Empty or None
-            print("No macros tracked today.")
+    def do_getmacros(self, arg):
+        # TODO: allow parameters for date ranges
+        args = arg.split()
+        results = {}
+        if not args:
+            results = api.GetMacros()
+        if not results:
+            print("No macros tracked for the specified period of time.")
             return
-        # Got some
-        for field in values._fields:
-            value = getattr(values, field)
-            print("{}: {}".format(field, value))
+        print("---")
+        for date in results:
+            print("Macros for {}:".format(GetDateString(date)))
+            m = results[date]
+            for field in m._fields:
+                print("{}: {}{}".format(field, getattr(m, field), units[field]))
         print("---")
 
+    def do_getfoods(self, arg):
+        # Show the foods that were logged on a given date
+        date = None
+        if arg:
+            # parse the date
+            found = dateMatch.findall(arg)
+            if not found:
+                print("Error parsing date parameter. Use D/M/Y - 10/8/2019 for 10 August 2019")
+                return
+            day, month, year = found.pop()
+            date = tuple(map(int, (day, month, year)))
+        foods, dateString = api.GetFoods(date)
+        print("---")
+        if not foods:
+            print("Nothing logged on {}".format(dateString))
+        else:
+            print("Logged on {}:\n".format(dateString))
+            for food in foods:
+                print("{}: {}g".format(food, foods[food]))
+        print("---")
 
+    def help_getfoods(self):
+        print("---")
+        print("Show the foods that were logged on the given date.")
+        print("Syntax: GETFOODS [D/M/Y]")
+        print("The date parameter is optional, and if omitted, defaults to today's date.")
+        print("---")
+        
     def do_listfoods(self, arg):
         "List the available foods and their IDs"
         print("---")
