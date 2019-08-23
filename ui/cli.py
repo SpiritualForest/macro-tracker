@@ -5,8 +5,11 @@ from database.datehandler import GetDateString, GetYear, GetDaysAgo
 from database.macros import foodIds, Macros, units # Just for names
 import config
 
+# TODO: RemoveFood()
+# TODO: coloured print
+
 dateMatch = re.compile("^(\d+)[/\.](\d+)[/\.]?(\d+)?") # Matches both d/m/y and d.m.y with year parameter optional
-unitMatch = re.compile("(\d+)(g$|kg$|mg$)")
+unitMatch = re.compile("^([0-9]+\.*[0-9]*)(mg|g|kg)$")
 timeStringMatch = re.compile("^(\d+)(d|w|m|y)$") # 2d, 10m, 5w, 3y
 
 def MatchDateString(dateString):
@@ -32,7 +35,8 @@ class MacrotrackerShell(cmd.Cmd):
     prompt = "macrotracker> "
 
     def do_addfood(self, arg):
-        params = arg.split()
+        # Add a food's macros to the database
+        params = arg.strip().split()
         date = None
         if len(params) < 2:
             print("Not enough parameters. Syntax: ADDFOOD <id> <weight in grams> [/d/m[/y]]")
@@ -43,24 +47,15 @@ class MacrotrackerShell(cmd.Cmd):
         # At least two parameters supplied
         if len(params) == 3:
             # get the date, must be the last parameter
-            found = dateMatch.findall(params.pop())
-            if not found:
-                print("Error in date parameter. Must be D/M/Y - 10/8/2019 for 10 August 2019.")
+            date = MatchDateString(params.pop())
+            if not date:
+                print("Error in date parameter. Must be d/m[/y] - 10/8[/2019] for 10 August 2019. Year is optional")
                 return
-            # If we reached here, there was a match
-            date = tuple(map(int, found.pop(0)))
         try:
             # Parse the weight and ID and make them into int/float
             foodId, weight = params
             foodId = int(foodId)
-            foundWeight = unitMatch.findall(weight)
-            if not foundWeight:
-                print("Error in parsing weight parameter. Must be Nmg, Ng or Nkg: 720mg, 120g, or 1.2kg depending on unit.")
-                return
-            # Get the weight and the unit
-            weight, unit = foundWeight.pop()
-            # Testing
-            oldweight = float(weight)
+            weight, unit = unitMatch.findall(weight).pop()
             weight = float(weight)
             # Now we convert the weight to grams
             if unit == "kg":
@@ -69,9 +64,10 @@ class MacrotrackerShell(cmd.Cmd):
             elif unit == "mg":
                 # divide by 1000
                 weight = weight / 1000
-        except ValueError:
+        except (IndexError, ValueError) as exception:
             # Cannot proceed, ID or weight is not a digit
             print("Error in parameters. ID and weight must be numbers.")
+            print(exception)
             return
         # Finally, call the API function
         success = api.AddFood(foodId, weight, date)
@@ -90,6 +86,59 @@ class MacrotrackerShell(cmd.Cmd):
         print("Example: ADDFOOD 0 500g 30/7/2019 to add the macro values for 500 grams of food ID 0 for 30 July 2019.")
         print("Dateless: ADDFOOD 0 1.3kg to add the macro values for 1.3 kilograms (1300 grams) of food ID 0 for today's date.")
         print('Type "listfoods" to view a list of foods and their respective ID.')
+        print("---")
+
+    def do_removefood(self, arg):
+        # Remove the food from the database
+        args = arg.split()
+        date = None
+        if len(args) < 2:
+            # Need at least food ID and weight
+            print("Not enough parameters.")
+            return
+        if len(args) > 3:
+            # Too many parameters
+            print("Error. Too many parameters.")
+            return
+        if len(args) == 3:
+            # Get the date
+            date = MatchDateString(args.pop())
+            if not date:
+                # No match
+                print("Error parsing date parameter. Use D.M[.Y]")
+                return
+        foodId, weight = args
+        if not foodId.isdigit():
+            # Error, must be a digit
+            print("Error. ID must be a number.")
+            return
+        try:
+            # Match the weight
+            weight, unit = unitMatch.findall(weight).pop()
+            weight = float(weight)
+            if unit == "mg":
+                # divide by 1000
+                weight = weight / 1000
+            elif unit == "kg":
+                # multiply by 1000
+                weight *= 1000
+        except IndexError:
+            # pop from empty list, no weight match
+            print("Error parsing weight parameter.")
+            return
+        # Checks passed
+        foodId = int(foodId)
+        success = api.RemoveFood(foodId, weight, date)
+        if success:
+            print("Removed macros for {}g of {}.".format(weight, foodIds[foodId]))
+
+    def help_removefood(self):
+        print("---")
+        print("Remove a specified weight of a food and its macros from the database.")
+        print("Syntax: REMOVEFOOD <id> <weight> [date]")
+        print("Date syntax: d.m[.y] - 20.8.2019 for 20 August 2019. Date is optional and if omitted, will default to today.")
+        print("The year parameter for the date is also optional, and if omitted will default to the current year.")
+        print("Example: REMOVEFOOD 0 500g 20.8 to remove macro values for 500 grams of food ID 0 on the 20th of August of the current year.")
         print("---")
 
     def do_settarget(self, arg):

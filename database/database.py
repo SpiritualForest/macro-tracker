@@ -107,14 +107,74 @@ def AddFood(food, weight, date=None):
     # Now add the individual food stuff too.
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
-    # Now insert the food and weight into the foods table
-    # This one is always INSERT INTO
-    sqlStatement = "INSERT INTO {} (Name, Weight, Date) VALUES (?, ?, ?)".format(TABLE_FOODS)
-    cursor.execute(sqlStatement, (food, weight, date,))
+    # First check if the food was added on the date. If it was, we update its weight
+    cursor.execute("SELECT ID, Weight FROM {} WHERE Name=? AND Date=?".format(TABLE_FOODS), (food, date,))
+    row = cursor.fetchone()
+    if not row:
+        # A food with this name was not yet logged on this date.
+        # First insertion
+        sqlStatement = "INSERT INTO {} (Name, Weight, Date) VALUES (?, ?, ?)".format(TABLE_FOODS)
+        cursor.execute(sqlStatement, (food, weight, date,))
+    else:
+        # A food was already logged, just update the weight.
+        foodId, currentWeight = row
+        sqlStatement = "UPDATE {} SET Weight=? WHERE ID=?".format(TABLE_FOODS)
+        cursor.execute(sqlStatement, (currentWeight+weight, foodId,))
     # Commit the changes and close the connection
     conn.commit()
     conn.close()
     return True # success
+
+def RemoveFood(food, weight, date=None):
+    # Calculate the macros and remove them from the database at <date>.
+    # If date is None, defaults to day
+    if food not in macros.data:
+        return False
+    foodLog = GetFoods(date)
+    if food not in foodLog:
+        # This food wasn't even logged on the date, we can't remove it
+        print("Tried to remove food that was never logged: {}".format(food))
+        return False
+    if weight > foodLog[food]:
+        # Weight is larger than was logged for this food, some error?
+        print("Weight is larger than logged for: {}".format(food))
+        return False
+    # Make the weight negative
+    weight = -(weight)
+    if not date:
+        # date is None, default to today
+        date = datehandler.GetToday()
+    macroValues = macros.CalculateMacros(food, weight)
+    updateSuccess = UpdateMacros(macroValues, date)
+    if not updateSuccess:
+        # Macro update failed
+        return False
+    # Now remove the amount from the food log table
+    # Get the ID for the food in question
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ID FROM {} WHERE Name=? AND Date=?".format(TABLE_FOODS), (food, date))
+    row = cursor.fetchone()
+    if not row:
+        print("Database error: did not find {} in {}!".format(food, TABLE_FOODS))
+        return False
+    rowId, = row
+    # Now update the weight value
+    # weight is actually a negative number, 
+    # so positive + -negative will result in a reduction
+    newWeight = foodLog[food] + weight
+    if newWeight == 0:
+        # Zero weight, remove row completely.
+        query = "DELETE FROM {} WHERE ID=?".format(TABLE_FOODS)
+        cursor.execute(query, (rowId,))
+    else:
+        # Simply update the weight
+        query = "UPDATE {} SET Weight=? WHERE ID=?".format(TABLE_FOODS)
+        cursor.execute(query, (newWeight, rowId,))
+    # Save changes and close the connection
+    conn.commit()
+    conn.close()
+    return True
 
 def UpdateUserSettings(macroValues):
     # Update the user's macro target settings

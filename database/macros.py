@@ -38,6 +38,8 @@ data = {
         "Eggplant": Macros(Calories=24, Fat=0.2, Carbs=2.3, Fiber=3.4, Protein=1, Water=92.4, Sodium=2),
         "Cabbage": Macros(Calories=25, Fat=0.1, Carbs=3.3, Fiber=2.5, Protein=1.3, Water=92.2, Sodium=18),
         "Cauliflower": Macros(Calories=25, Fat=0.1, Carbs=2.8, Fiber=2.5, Protein=2, Water=91.9, Sodium=30),
+        "Banana": Macros(Calories=89, Fat=0.3, Carbs=20.2, Fiber=2.6, Protein=1.1, Water=74.9, Sodium=1),
+        "Galia melon": Macros(Calories=23, Fat=0.2, Carbs=3.78, Fiber=1.8, Protein=0.62, Water=0, Sodium=64),
         # Beans, lentils, etc
         # NOTE: macros for dry, not cooked.
         "Brown beans": Macros(Calories=320, Fat=1.5, Carbs=45, Fiber=16, Protein=22, Water=0, Sodium=100),
@@ -52,6 +54,9 @@ data = {
         "K-Menu canned white mushrooms": Macros(Calories=18, Fat=0.2, Carbs=0.9, Fiber=2.2, Protein=2.1, Water=170, Sodium=600),
         "Marmite": Macros(Calories=260, Fat=0.5, Carbs=30, Fiber=1.1, Protein=34, Water=0, Sodium=10800),
         "K-Menu crushed tomatoes": Macros(Calories=27, Fat=0.2, Carbs=4, Fiber=1.5, Protein=1.2, Water=94.5, Sodium=0),
+        "Freshona sweetcorn": Macros(Calories=82, Fat=2.5, Carbs=11, Fiber=2.7, Protein=2.5, Water=75.95, Sodium=300),
+        "Freshona peas": Macros(Calories=87, Fat=1.1, Carbs=5.3, Fiber=0, Protein=9.2, Water=0, Sodium=460),
+        "Freshona tomato puree": Macros(Calories=98, Fat=0.4, Carbs=15.6, Fiber=0, Protein=4.6, Water=0, Sodium=1000),
         # Salt, sugar
         "Salt": Macros(Calories=0, Fat=0, Carbs=0, Fiber=0, Protein=0, Water=0, Sodium=38758),
         "White sugar": Macros(Calories=400, Fat=0, Carbs=100, Fiber=0, Protein=0, Water=0, Sodium=0),
@@ -73,10 +78,6 @@ def CalculateMacros(food, weight):
     if food not in data:
         # No such food
         print("Error. Food item not found: {}".format(food))
-        return
-    if weight < 0:
-        # Negative weight? LOLWUT, no.
-        print("Error. Sub-zero weight provided.")
         return
     
     macroValues = data[food]._asdict()

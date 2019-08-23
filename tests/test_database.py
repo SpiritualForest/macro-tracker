@@ -34,13 +34,32 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(result, doublePotato)
 
     def test_AddFoodAndGetMacros(self):
-        # Test the functions AddFood() and GetTodayMacros()
+        # Test the functions AddFood() and GetMacros()
         database.MakeDatabase()
         # Add
         database.AddFood("Potato", 100)
         macroValues = (77, 0.09, 16.2, 2.2, 2, 79, 6)
         # Get
         self.assertEqual(database.GetMacros(datehandler.GetToday())[datehandler.GetToday()], macroValues)
+        database.RemoveDatabase()
+
+    def test_AddFoodAndRemoveFood(self):
+        # Test the function RemoveFood()
+        database.MakeDatabase()
+        database.AddFood("Potato", 100)
+        database.AddFood("Apple", 100)
+        foods = database.GetFoods(datehandler.GetToday())
+        self.assertIn("Potato", foods)
+        self.assertIn("Apple", foods)
+        self.assertEqual(foods["Potato"], 100)
+        self.assertEqual(foods["Apple"], 100)
+        # Now remove 50 grams
+        database.RemoveFood("Potato", 50)
+        database.RemoveFood("Apple", 50)
+        foods = database.GetFoods()
+        self.assertEqual(foods["Potato"], 50)
+        self.assertEqual(foods["Apple"], 50)
+        # remove database
         database.RemoveDatabase()
 
     def test_UpdateAndGetUserSettings(self):

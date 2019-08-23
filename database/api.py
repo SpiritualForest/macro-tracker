@@ -75,3 +75,20 @@ def GetMacros(start=None, end=None):
         end = datehandler.GetTimestampFromDate(datehandler.GetDatetimeObject(*end))
     results = database.GetMacros(startTimestamp, end)
     return results
+
+def RemoveFood(foodId, weight, date=None):
+    # Remove tracked <weight> of <foodId> from the database
+    if foodId not in macros.foodIds:
+        print("ID doesn't exist: {}".format(foodId))
+        return
+    if weight < 0:
+        # Must be positive
+        print("Sub-zero weight provided: {}".format(weight))
+        return
+    if date:
+        # date is a tuple of (day, month, year)
+        timestamp = datehandler.GetTimestampFromDate(datehandler.GetDatetimeObject(*date))
+        date = timestamp
+    name = macros.foodIds[foodId]
+    success = database.RemoveFood(name, weight, date)
+    return success
