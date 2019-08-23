@@ -28,7 +28,7 @@ units = {
 # Load it up into a dictionary here at runtime.
 data = {
         # Raw vegetables first
-        "Potato": Macros(Calories=77, Fat=0.09, Carbs=16.2, Fiber=2.2, Protein=2, Water=79, Sodium=6),
+        "Potato": Macros(Calories=77, Fat=0.09, Carbs=17, Fiber=2.2, Protein=2, Water=79, Sodium=6),
         "Beetroot": Macros(Calories=43, Fat=0.2, Carbs=6.8, Fiber=2.8, Protein=1.6, Water=87.6, Sodium=78),
         "Apple": Macros(Calories=52, Fat=0.2, Carbs=11.4, Fiber=2.4, Protein=0.3, Water=85.6, Sodium=1),
         "Tomato": Macros(Calories=18, Fat=0.2, Carbs=2.7, Fiber=1.2, Protein=0.9, Water=94.5, Sodium=5),

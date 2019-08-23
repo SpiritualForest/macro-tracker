@@ -5,12 +5,22 @@ from database.datehandler import GetDateString, GetYear, GetDaysAgo
 from database.macros import foodIds, Macros, units # Just for names
 import config
 
-# TODO: RemoveFood()
 # TODO: coloured print
 
 dateMatch = re.compile("^(\d+)[/\.](\d+)[/\.]?(\d+)?") # Matches both d/m/y and d.m.y with year parameter optional
 unitMatch = re.compile("^([0-9]+\.*[0-9]*)(mg|g|kg)$")
 timeStringMatch = re.compile("^(\d+)(d|w|m|y)$") # 2d, 10m, 5w, 3y
+
+macroTargets = api.ShowTargets()[0]
+
+def PrintRed(line):
+    print("\x1b[1;31;40m{}\x1b[0m".format(line))
+
+def PrintYellow(line):
+    print("\x1b[1;33;40m{}\x1b[0m".format(line))
+
+def PrintGreen(line):
+    print("\x1b[1;32;40m{}\x1b[0m".format(line))
 
 def MatchDateString(dateString):
     # match the date string
@@ -171,6 +181,9 @@ class MacrotrackerShell(cmd.Cmd):
         if params:
             success = api.SetMacros(Macros(**params))
             if success:
+                # Update the global macroTargets dictionary
+                global macroTargets
+                macroTargets = api.ShowTargets()[0]
                 print("Macro targets updated.")
 
     def help_settarget(self):
@@ -277,7 +290,23 @@ class MacrotrackerShell(cmd.Cmd):
             print("Macros for {}:".format(GetDateString(date)))
             m = results[date]
             for field in m._fields:
-                print("{}: {}{}".format(field, round(getattr(m, field), 3), units[field]))
+                fieldValue = round(getattr(m, field), 3)
+                fieldUnit = units[field]
+                # Ex: "Calories: 1500kcal"
+                print("{}: {}{}".format(field, fieldValue, fieldUnit), end="\t")
+                # Now print the target reaching values
+                # Red for 0-40%
+                # Yellow for 41-100%
+                # Green for 100+%
+                target = round(getattr(macroTargets, field), 3)
+                percentage = round((fieldValue * 100) / target, 2)
+                line = "({}%)".format(percentage)
+                if 0 < percentage < 41:
+                    PrintRed(line)
+                elif 41 < percentage < 100:
+                    PrintYellow(line)
+                else:
+                    PrintGreen(line)
             print("---")
     
     def help_getmacros(self):
