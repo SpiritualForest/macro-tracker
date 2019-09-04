@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Macro tracker main file
 import argparse
 import os

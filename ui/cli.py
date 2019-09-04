@@ -314,16 +314,16 @@ class MacrotrackerShell(cmd.Cmd):
         print("Get the macros that were tracked at the time periods specified.")
         print("If no parameters are given, gets the macros from today.")
         print("Multiple parameters accepted:")
-        print("GETMACROS --date/-d <d.m[.y> to get the macros from the given date. If the year parameter is omitted, defaults to the current year.")
-        print("Example: GETMACROS --date 17.8 for 17 August of this year.")
+        PrintYellow("GETMACROS --date/-d <d.m[.y> to get the macros from the given date. If the year parameter is omitted, defaults to the current year.")
+        PrintYellow("Example: GETMACROS --date 17.8 for 17 August of this year.")
         print("---")
-        print("GETMACROS --daterange/-dr <start date> <end date>")
-        print("Example: GETMACROS --daterange 4.8.2019 10.8.2019 to get the macros from 4-10 August 2019. Year is optional.")
+        PrintYellow("GETMACROS --daterange/-dr <start date> <end date>")
+        PrintYellow("Example: GETMACROS --daterange 4.8.2019 10.8.2019 to get the macros from 4-10 August 2019. Year is optional.")
         print("---")
-        print("GETMACROS --fromlast/-fl <N><d|w|m|y>")
-        print("Example: GETMACROS --fromlast 35d to get all the macros that were tracked in the last 35 days.")
+        PrintYellow("GETMACROS --fromlast/-fl <N><d|w|m|y>")
+        PrintYellow("Example: GETMACROS --fromlast 35d to get all the macros that were tracked in the last 35 days.")
         print('Time units accepted: "d" for day, "w" for week, "m" for month, "y" for year.')
-        print("Example: GETMACROS -fl 2w to get the macros that were tracked in the last 2 weeks, up to today.")
+        PrintYellow("Example: GETMACROS -fl 2w to get the macros that were tracked in the last 2 weeks, up to today.")
         print("---")
 
     def do_getfoods(self, arg):
@@ -341,14 +341,21 @@ class MacrotrackerShell(cmd.Cmd):
             print("Nothing logged on {}".format(dateString))
         else:
             print("Logged on {}:\n".format(dateString))
+            totalWeight = 0
             for food in foods:
-                print("{}: {}g".format(food, foods[food]))
+                weight = foods[food]
+                totalWeight += weight
+                print("{}: {}g".format(food, weight))
+            if totalWeight > 1000:
+                PrintGreen("Total: {}kg".format(totalWeight / 1000))
+            else:
+                PrintGreen("Total: {}g".format(totalWeight))
         print("---")
 
     def help_getfoods(self):
         print("---")
         print("Show the foods that were logged on the given date.")
-        print("Syntax: GETFOODS [D/M/Y]")
+        PrintYellow("Syntax: GETFOODS [D/M/Y]")
         print("The date parameter is optional, and if omitted, defaults to today's date.")
         print("---")
         
