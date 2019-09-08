@@ -5,8 +5,6 @@ from database.datehandler import GetDateString, GetYear, GetDaysAgo
 from database.macros import foodIds, Macros, units # Just for names
 import config
 
-# TODO: coloured print
-
 dateMatch = re.compile("^(\d+)[/\.](\d+)[/\.]?(\d+)?") # Matches both d/m/y and d.m.y with year parameter optional
 unitMatch = re.compile("^([0-9]+\.*[0-9]*)(mg|g|kg)$")
 timeStringMatch = re.compile("^(\d+)(d|w|m|y)$") # 2d, 10m, 5w, 3y
@@ -301,7 +299,7 @@ class MacrotrackerShell(cmd.Cmd):
                 target = round(getattr(macroTargets, field), 3)
                 percentage = round((fieldValue * 100) / target, 2)
                 line = "({}%)".format(percentage)
-                if 0 < percentage < 41:
+                if 0 <= percentage < 41:
                     PrintRed(line)
                 elif 41 < percentage < 100:
                     PrintYellow(line)

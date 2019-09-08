@@ -42,6 +42,8 @@ data = {
         "Red pepper": Macros(Calories=31, Fat=0.3, Carbs=4.2, Fiber=2.1, Protein=1, Water=92.2, Sodium=4),
         "Banana": Macros(Calories=89, Fat=0.3, Carbs=20.2, Fiber=2.6, Protein=1.1, Water=74.9, Sodium=1),
         "Galia melon": Macros(Calories=23, Fat=0.2, Carbs=3.78, Fiber=1.8, Protein=0.62, Water=0, Sodium=64),
+        "Butternut squash": Macros(Calories=45, Fat=0.1, Carbs=9.7, Fiber=2, Protein=1, Water=86.4, Sodium=4),
+        "Carrot": Macros(Calories=41, Fat=0.24, Carbs=6.8, Fiber=2.8, Protein=0.93, Water=88, Sodium=69),
         # Beans, lentils, etc
         # NOTE: macros for dry, not cooked.
         "Brown beans": Macros(Calories=320, Fat=1.5, Carbs=45, Fiber=16, Protein=22, Water=0, Sodium=100),
@@ -58,6 +60,7 @@ data = {
         "Whole-wheat spaghetti": Macros(Calories=343, Fat=1.9, Carbs=65, Fiber=7, Protein=13, Water=0, Sodium=0),
         "Marmite": Macros(Calories=260, Fat=0.5, Carbs=30, Fiber=1.1, Protein=34, Water=0, Sodium=10800),
         "Bio tofu": Macros(Calories=107, Fat=5.3, Carbs=0.2, Fiber=0, Protein=13.1, Water=0, Sodium=50),
+        "SoFine tofu:": Macros(Calories=128, Fat=7.6, Carbs=1, Fiber=0.9, Protein=13.4, Water=0, Sodium=30),
         # Salt, sugar
         "Salt": Macros(Calories=0, Fat=0, Carbs=0, Fiber=0, Protein=0, Water=0, Sodium=38758),
         "White sugar": Macros(Calories=400, Fat=0, Carbs=100, Fiber=0, Protein=0, Water=0, Sodium=0),
