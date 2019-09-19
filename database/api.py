@@ -92,3 +92,16 @@ def RemoveFood(foodId, weight, date=None):
     name = macros.foodIds[foodId]
     success = database.RemoveFood(name, weight, date)
     return success
+
+def CalcFood(foodId, weight):
+    # Calculate the macros for the given food based on the weight
+    # and return the results
+    if foodId not in macros.foodIds:
+        print("ID doesn't exist: {}".format(foodId))
+        return
+    if weight < 0:
+        print("Error: sub-zero weight.")
+        return
+    food = macros.foodIds[foodId]
+    macroValues = macros.CalculateMacros(food, weight)
+    return macroValues

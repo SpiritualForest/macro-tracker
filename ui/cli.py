@@ -1,4 +1,5 @@
 import cmd
+import os # for system("clear")
 import re
 from database import api
 from database.datehandler import GetDateString, GetYear, GetDaysAgo
@@ -350,6 +351,48 @@ class MacrotrackerShell(cmd.Cmd):
                 PrintGreen("Total: {}g".format(totalWeight))
         print("---")
 
+    def do_calcfood(self, arg):
+        # calcfood <id> <weight>
+        args = arg.split()
+        if len(args) > 2:
+            print("Error. Too many arguments provided.")
+            return
+        if len(args) < 2:
+            print("Error. Not enough arguments.")
+            return
+        foodId, weight = args
+        if not foodId.isdigit():
+            print("Error parsing ID parameter. Must be a digit.")
+            return
+        try:
+            # Match the weight
+            weight, unit = unitMatch.findall(weight).pop()
+            weight = float(weight)
+            if unit == "mg":
+                # divide by 1000
+                weight = weight / 1000
+            elif unit == "kg":
+                # multiply by 1000
+                weight *= 1000
+        except IndexError:
+            # pop from empty list, no weight match
+            print("Error parsing weight parameter.")
+            return
+        # Error checks passed.
+        foodId = int(foodId)
+        macroValues = api.CalcFood(foodId, weight)
+        if not macroValues:
+            # Nothing was returned
+            return
+        print("---")
+        print("{}{} of {}:".format(weight, unit, foodIds[foodId]))
+        print("---")
+        for fieldName in macroValues._fields:
+            value = getattr(macroValues, fieldName)
+            unitString = units[fieldName]
+            print("{}: {}{}".format(fieldName, value, unitString))
+        print("---")
+
     def help_getfoods(self):
         print("---")
         print("Show the foods that were logged on the given date.")
@@ -373,6 +416,10 @@ class MacrotrackerShell(cmd.Cmd):
     def do_exit(self, arg):
         'Exit the application'
         return True
+    
+    def do_clear(self, arg):
+        'Clear the screen'
+        os.system("clear")
 
     def precmd(self, line):
         # Make it lower
