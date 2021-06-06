@@ -10,7 +10,7 @@ dateMatch = re.compile("^(\d+)[/\.](\d+)[/\.]?(\d+)?") # Matches both d/m/y and 
 unitMatch = re.compile("^([0-9]+\.*[0-9]*)(mg|g|kg)$")
 timeStringMatch = re.compile("^(\d+)(d|w|m|y)$") # 2d, 10m, 5w, 3y
 
-macroTargets = api.ShowTargets()[0]
+#macroTargets = api.ShowTargets()[0]
 
 def PrintRed(line):
     print("\x1b[1;31;40m{}\x1b[0m".format(line))
@@ -159,7 +159,6 @@ class MacrotrackerShell(cmd.Cmd):
         for word in words:
             try:
                 macro, value = word.split("=")
-                macro = macro.capitalize()
                 if macro not in Macros._fields:
                     # No such parameter, let's skip it
                     print("Non-existent parameter encountered: {} - ignoring.".format(macro))

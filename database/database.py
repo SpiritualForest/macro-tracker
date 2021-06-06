@@ -17,6 +17,7 @@ TABLE_FOODS = "Foods"
 
 def MakeDatabase():
     # Create the database
+    print("MakeDatabase() called")
     macroColumns = ", ".join(["{} real".format(macro) for macro in macros.Macros._fields])
     try:
         conn = sqlite3.connect(DATABASE)
